@@ -270,6 +270,10 @@
 
             // --- MOCK DATA ---
             const mockData = {
+                users: [
+                    { name: 'Alex Johnson', email: 'student@university.edu', password: 'password123', role: 'student' },
+                    { name: 'Admin User', email: 'admin@university.edu', password: 'adminpass', role: 'admin' }
+                ],
                 announcements: [
                     { id: 1, title: 'Final Exam Schedule Released', date: '2025-10-10', content: 'The final exam schedule for the Fall 2025 semester has been released. Please check the student portal for your personalized schedule.', category: 'Academics' },
                     { id: 2, title: 'Library Hours Extended for Finals', date: '2025-10-09', content: 'The main library will be open 24/7 starting from December 1st until the end of the exam period.', category: 'Campus' },
@@ -311,7 +315,7 @@
                 ]
             };
 
-            let currentUserRole = 'student';
+            let currentUser = null;
             
             // --- DOM ELEMENTS ---
             const authContainer = document.getElementById('auth-container');
@@ -336,38 +340,77 @@
             document.getElementById('show-admin-login').addEventListener('click', (e) => { e.preventDefault(); showAuthPage('admin-login-page'); });
             document.getElementById('show-student-login').addEventListener('click', (e) => { e.preventDefault(); showAuthPage('login-page'); });
 
-            const setupUIForRole = (role) => {
-                currentUserRole = role;
-                if (role === 'admin') {
+            const setupUIForRole = (user) => {
+                currentUser = user;
+                if (user.role === 'admin') {
                     studentNav.classList.add('hidden');
                     adminNav.classList.remove('hidden');
-                    document.getElementById('user-name').textContent = 'Admin User';
+                    document.getElementById('user-name').textContent = user.name;
                     document.getElementById('user-role').textContent = 'Administrator';
                     window.location.hash = '#admin-dashboard';
                 } else {
                     studentNav.classList.remove('hidden');
                     adminNav.classList.add('hidden');
-                    document.getElementById('user-name').textContent = 'Alex Johnson';
-                    document.getElementById('user-role').textContent = 'Student ID: 12345';
+                    document.getElementById('user-name').textContent = user.name;
+                    document.getElementById('user-role').textContent = `Student ID: ${user.email.split('@')[0]}`;
                     window.location.hash = '#dashboard';
                 }
             }
 
-            const login = (role) => {
+            const login = (user) => {
                 authContainer.classList.add('hidden');
-                setupUIForRole(role);
+                setupUIForRole(user);
                 handleRouteChange();
             };
 
-            const logout = () => { authContainer.classList.remove('hidden'); showAuthPage('login-page'); };
+            const logout = () => { 
+                currentUser = null;
+                authContainer.classList.remove('hidden'); 
+                showAuthPage('login-page'); 
+            };
             
-            document.getElementById('login-form').addEventListener('submit', (e) => { e.preventDefault(); login('student'); });
-            document.getElementById('register-form').addEventListener('submit', (e) => { e.preventDefault(); login('student'); });
+            document.getElementById('login-form').addEventListener('submit', (e) => { 
+                e.preventDefault(); 
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                const user = mockData.users.find(u => u.email === email && u.password === password && u.role === 'student');
+                if (user) {
+                    login(user);
+                } else {
+                    alert('Invalid student credentials.');
+                }
+            });
+
+            document.getElementById('register-form').addEventListener('submit', (e) => { 
+                e.preventDefault(); 
+                const name = document.getElementById('register-name').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+
+                if (mockData.users.some(u => u.email === email)) {
+                    alert('An account with this email already exists.');
+                    return;
+                }
+
+                const newUser = { name, email, password, role: 'student' };
+                mockData.users.push(newUser);
+                alert('Registration successful! Please log in.');
+                showAuthPage('login-page');
+                document.getElementById('login-email').value = email;
+                document.getElementById('login-password').value = '';
+            });
+
             document.getElementById('admin-login-form').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const email = document.getElementById('admin-login-email').value;
-                if (email === 'admin@university.edu') login('admin');
-                else alert('Invalid admin credentials.');
+                const password = document.getElementById('admin-login-password').value;
+                const user = mockData.users.find(u => u.email === email && u.password === password && u.role === 'admin');
+
+                if (user) {
+                    login(user);
+                } else {
+                    alert('Invalid admin credentials.');
+                }
             });
             document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); logout(); });
 
@@ -375,9 +418,10 @@
             const showPage = (pageId) => {
                 pages.forEach(page => page.classList.add('hidden'));
                 const activePage = document.getElementById(`${pageId}-page`);
-                if (activePage) activePage.classList.remove('hidden');
-                else {
-                    const defaultPage = currentUserRole === 'admin' ? 'admin-dashboard-page' : 'dashboard-page';
+                if (activePage) {
+                    activePage.classList.remove('hidden');
+                } else {
+                    const defaultPage = currentUser?.role === 'admin' ? 'admin-dashboard-page' : 'dashboard-page';
                     document.getElementById(defaultPage).classList.remove('hidden');
                 }
 
@@ -390,7 +434,7 @@
             };
             
             const handleRouteChange = () => {
-                const defaultHash = currentUserRole === 'admin' ? 'admin-dashboard' : 'dashboard';
+                const defaultHash = currentUser?.role === 'admin' ? 'admin-dashboard' : 'dashboard';
                 const hash = window.location.hash.substring(1) || defaultHash;
                 showPage(hash);
             };
@@ -545,4 +589,5 @@
     </script>
 </body>
 </html>
+
 
